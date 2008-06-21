@@ -13,6 +13,7 @@ module Net
 
     def connect
       socket = TCPSocket.new(@uri.host, @uri.port || PORT)
+      @connection = Connection.new(socket)
     end
   end
 end
