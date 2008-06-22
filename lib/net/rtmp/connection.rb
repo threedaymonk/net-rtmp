@@ -22,7 +22,7 @@ class Connection
     header.inherit(@last_header) if @last_header
     header.parse(@socket)
     if packet = @packets[header.oid]
-      header.inherit(packet.header)
+      packet.endow(header)
     else
       packet = @packets[header.oid] = Packet.new(header)
     end

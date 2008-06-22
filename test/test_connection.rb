@@ -87,10 +87,10 @@ class RTMPConnectionTest < Test::Unit::TestCase
         packets << packet
       end
     end
-    header = packets[1].header
-    assert_equal 0x000001,   header.timestamp
-    assert_equal 0x14,       header.content_type
-    assert_equal 0x78563412, header.stream_id
+    packet = packets[1]
+    assert_equal 0x000001,   packet.timestamp
+    assert_equal 0x14,       packet.content_type
+    assert_equal 0x78563412, packet.stream_id
   end
 
   def test_should_send_header
