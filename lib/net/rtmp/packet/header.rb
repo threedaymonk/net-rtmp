@@ -40,6 +40,18 @@ class Header
     end
   end
 
+  def generate(length=12)
+    length_marker = HEADER_LENGTHS.invert[length] << 6
+    raw = [length_marker | @oid].pack('C')
+    if length == 12
+      raw << [@timestamp].pack('N')[1,3]
+      raw << [@body_length].pack('N')[1,3]
+      raw << [@content_type].pack('C')
+      raw << [@stream_id].pack('V')
+    end
+    raw
+  end
+
 end
 end
 end
