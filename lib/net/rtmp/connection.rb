@@ -37,6 +37,19 @@ class Connection
     @packets.any?
   end
 
+	def fetch(&blk)
+		get_data(&blk)
+		while need_data?
+			get_data(&blk)
+		end
+	end
+
+	def send(packet)
+		packet.generate do |chunk|
+			@socket.write(chunk)
+		end
+	end
+
 private
 
   def random_string(length)

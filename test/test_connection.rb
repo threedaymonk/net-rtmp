@@ -2,6 +2,7 @@ $:.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 require 'net/rtmp/connection'
 require 'test/unit'
 require 'stringio'
+require 'mocha'
 
 class RTMPConnectionTest < Test::Unit::TestCase
 
@@ -93,6 +94,52 @@ class RTMPConnectionTest < Test::Unit::TestCase
     assert_equal 0x78563412, packet.stream_id
   end
 
+  def test_should_need_data_when_packets_are_incomplete
+    data = [
+      [ random_string(128), random_string(128), random_string(5) ],
+      [ random_string(128), random_string(7) ]
+    ]
+    sample = "\x03\x00\x00\x01\x00\x01\x05\x14\x12\x34\x56\x78" +
+             random_string(128)
+    socket = MockSocket.new(sample)
+    connection = Net::RTMP::Connection.new(socket)
+    connection.get_data{}
+    assert connection.need_data?
+  end
+
+  def test_should_get_all_outstanding_packets
+    data = [
+      [ random_string(128), random_string(128), random_string(5) ],
+      [ random_string(128), random_string(7) ]
+    ]
+    sample = "\x03\x00\x00\x01\x00\x01\x05\x14\x12\x34\x56\x78" +
+             data[0][0] +
+             "\x44\x00\x00\x01\x00\x00\x87\x14" +
+             data[1][0] +
+             "\xc3" +
+             data[0][1] +
+             "\xc4" +
+             data[1][1] +
+             "\xc3" +
+             data[0][2]
+    socket = MockSocket.new(sample)
+    connection = Net::RTMP::Connection.new(socket)
+    packets = []
+    connection.fetch do |packet|
+      packets << packet
+    end
+    assert_equal 2, packets.length
+  end
+
+  def test_should_send_packets
+    socket = mock
+    connection = Net::RTMP::Connection.new(socket)
+    packet = Net::RTMP::Packet.new
+    packet.stubs(:generate).yields('DATA')
+    socket.expects(:write).with('DATA')
+    connection.send(packet)
+  end
+
   def test_should_send_header
     socket = MockSocket.new(random_string(1536 * 3))
     connection = Net::RTMP::Connection.new(socket)
@@ -107,6 +154,8 @@ class RTMPConnectionTest < Test::Unit::TestCase
     connection.handshake
     assert_equal handshake_string, socket.written[1]
   end
+
+private
 
   def random_string(length)
     (0...length).map{ rand(256) }.pack('C*')
