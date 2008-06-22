@@ -64,6 +64,35 @@ class RTMPConnectionTest < Test::Unit::TestCase
     assert_equal [data[1].join, data[0].join], packets.map{ |p| p.body }
   end
 
+  def test_should_have_complete_headers_in_yielded_packet
+    data = [
+      [ random_string(128), random_string(128), random_string(5) ],
+      [ random_string(128), random_string(7) ]
+    ]
+    sample = "\x03\x00\x00\x01\x00\x01\x05\x14\x12\x34\x56\x78" +
+             data[0][0] +
+             "\x44\x00\x00\x01\x00\x00\x87\x14" +
+             data[1][0] +
+             "\xc3" +
+             data[0][1] +
+             "\xc4" +
+             data[1][1] +
+             "\xc3" +
+             data[0][2]
+    socket = MockSocket.new(sample)
+    connection = Net::RTMP::Connection.new(socket)
+    packets = []
+    5.times do
+      connection.get_data do |packet|
+        packets << packet
+      end
+    end
+    header = packets[1].header
+    assert_equal 0x000001,   header.timestamp
+    assert_equal 0x14,       header.content_type
+    assert_equal 0x78563412, header.stream_id
+  end
+
   def test_should_send_header
     socket = MockSocket.new(random_string(1536 * 3))
     connection = Net::RTMP::Connection.new(socket)
