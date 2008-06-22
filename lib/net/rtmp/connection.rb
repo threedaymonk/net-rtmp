@@ -21,8 +21,11 @@ class Connection
     header = Packet::Header.new
     header.inherit(@last_header) if @last_header
     header.parse(@socket)
-    @last_header = header
-    packet = (@packets[header.oid] ||= Packet.new(header))
+    if packet = @packets[header.oid]
+      header.inherit(packet.header)
+    else
+      packet = @packets[header.oid] = Packet.new(header)
+    end
     packet << @socket.read(packet.bytes_to_fetch)
     if packet.complete?
       @packets.delete(header.oid)

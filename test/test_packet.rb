@@ -82,7 +82,7 @@ class RTMPPacketHeaderTest < Test::Unit::TestCase
 
   def test_should_inherit_data_from_preceding_packet
     current = Net::RTMP::Packet::Header.new
-    previous = mock(
+    previous = stub(
       :oid          => 99,
       :timestamp    => 88,
       :body_length  => 77,
@@ -95,6 +95,27 @@ class RTMPPacketHeaderTest < Test::Unit::TestCase
     assert_equal 77, current.body_length
     assert_equal 66, current.content_type
     assert_equal 55, current.stream_id
+  end
+
+  def test_should_prefer_own_data_when_inheriting_data_from_preceding_packet
+    data = [0b0010_1011, 0x12, 0x34, 0x56,
+                   0x78, 0x9a, 0xbc, 0xde,
+                   0x11, 0x22, 0x33, 0x44].pack('C*')
+    header = Net::RTMP::Packet::Header.new
+    header.parse(StringIO.new(data))
+    previous = stub(
+      :oid          => 99,
+      :timestamp    => 88,
+      :body_length  => 77,
+      :content_type => 66,
+      :stream_id    => 55
+    )
+    header.inherit(previous)
+    assert_equal 0b10_1011,  header.oid
+    assert_equal 0x123456,   header.timestamp
+    assert_equal 0x789abc,   header.body_length
+    assert_equal 0xde,       header.content_type
+    assert_equal 0x44332211, header.stream_id
   end
 
 end

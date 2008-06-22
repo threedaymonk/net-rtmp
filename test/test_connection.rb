@@ -5,7 +5,7 @@ require 'stringio'
 
 class RTMPConnectionTest < Test::Unit::TestCase
 
-  def test_should_read_contiguous_chunks_and_concatenate_them_yielding_complete_packets
+  def test_should_concatenate_contiguous_chunks_and_yield_complete_packets
     sample = %w[
       03 00 00 01
       00 01 05 14 00 00 00 00 02 00 07 63 6f 6e 6e 65
@@ -38,32 +38,30 @@ class RTMPConnectionTest < Test::Unit::TestCase
     assert_equal data, packets[0].body
   end
 
-  def test_should_read_non_contiguous_chunks_of_same_length_and_concatenate_them_yielding_complete_packets
+  def test_should_concatenate_non_contiguous_chunks_and_yield_complete_packets
     data = [
       [ random_string(128), random_string(128), random_string(5) ],
-      [ random_string(128), random_string(128), random_string(5) ]
+      [ random_string(128), random_string(7) ]
     ]
     sample = "\x03\x00\x00\x01\x00\x01\x05\x14\x00\x00\x00\x00" +
              data[0][0] +
+             "\x44\x00\x00\x01\x00\x00\x87\x14" +
+             data[1][0] +
              "\xc3" +
              data[0][1] +
              "\xc4" +
-             data[1][0] +
-             "\xc3" +
-             data[0][2] +
-             "\xc4" +
              data[1][1] +
-             "\xc4" +
-             data[1][2]
+             "\xc3" +
+             data[0][2]
     socket = MockSocket.new(sample)
     connection = Net::RTMP::Connection.new(socket)
     packets = []
-    6.times do
+    5.times do
       connection.get_data do |packet|
         packets << packet
       end
     end
-    assert_equal [data[0].join, data[1].join], packets.map{ |p| p.body }
+    assert_equal [data[1].join, data[0].join], packets.map{ |p| p.body }
   end
 
   def test_should_send_header
@@ -92,6 +90,7 @@ class RTMPConnectionTest < Test::Unit::TestCase
     end
 
     def read(*args)
+      #p([:read] + args)
       @buffer.read(*args)
     end
 

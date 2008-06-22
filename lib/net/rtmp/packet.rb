@@ -2,7 +2,7 @@ module Net
 class RTMP
 class Packet
 
-  attr_reader :body
+  attr_reader :body, :header
 
   def initialize(header)
     @header = header
@@ -32,17 +32,16 @@ class Packet
 
     attr_accessor :oid, :timestamp, :body_length, :content_type, :stream_id
 
-    def initialize
-      @body_length = 128
+    def inherit(previous)
+      @oid          ||= previous.oid
+      @timestamp    ||= previous.timestamp
+      @body_length  ||= previous.body_length
+      @content_type ||= previous.content_type
+      @stream_id    ||= previous.stream_id
     end
 
-    def inherit(previous)
-      self.oid          = previous.oid
-      self.timestamp    = previous.timestamp
-      self.body_length  = previous.body_length
-      self.content_type = previous.content_type
-      self.stream_id    = previous.stream_id
-      self
+    def body_length
+      @body_length || 128
     end
 
     def parse(io)
