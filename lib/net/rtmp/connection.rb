@@ -19,7 +19,6 @@ class Connection
 
   def get_data
     header = Packet::Header.new
-    header.inherit(@last_header) if @last_header
     header.parse(@socket)
     if packet = @packets[header.oid]
       packet.endow(header)
