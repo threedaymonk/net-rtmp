@@ -7,8 +7,9 @@ def inspect_packet(packet)
   puts(
     "Content type: 0x%x (%s)" % [packet.content_type, 
                                  DATATYPE_NAMES[packet.content_type] || '?'],
-    "Stream ID:    0x%x"      % packet.stream_id,
-    "Timestamp:    0x%x"      % packet.timestamp
+    "Stream ID: 0x%x" % packet.stream_id,
+    "Timestamp: 0x%x" % packet.timestamp,
+    "Length: %d (0x%x)" % ([packet.body.length]*2)
   )
   data = packet.body
   0.step(data.length-1, 16) do |i|
@@ -39,6 +40,7 @@ File.open(ARGV[0], 'rb') do |io|
       end
       puts '---', ''
     end
-  rescue 
+  rescue Net::RTMP::NoMoreData
+    puts 'No more data'
   end
 end
