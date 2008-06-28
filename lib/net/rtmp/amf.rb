@@ -41,7 +41,7 @@ private
 
   def recursive_parse(io)
     elements = []
-    until (e = next_element(io)) == EndOfPacket
+    until io.eof? || (e = next_element(io)) == EndOfPacket
       elements << e
     end
     elements
@@ -64,6 +64,8 @@ private
       read_length_prefixed_data(io)
     when DT_OBJECT_END
       EndOfPacket
+    when DT_NULL_VALUE
+      nil
     else
       read_length_prefixed_data(io)
     end 
