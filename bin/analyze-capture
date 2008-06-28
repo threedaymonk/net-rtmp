@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'net/rtmp'
+require 'pp'
 DATATYPE_NAMES = Net::RTMP::DATATYPES.invert
 
 def inspect_packet(packet)
@@ -26,6 +27,14 @@ def inspect_packet(packet)
       end
     end
     puts display_row.gsub(/[^ -\x7e]/n, '.')
+  end
+  if packet.content_type == 0x14
+    begin
+      amf = Net::RTMP::AMF.new
+      amf.parse(packet.body)
+      pp amf.to_a
+    rescue NoMethodError
+    end
   end
 end
 
