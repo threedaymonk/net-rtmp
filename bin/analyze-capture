@@ -1,0 +1,44 @@
+#!/usr/bin/env ruby
+
+require 'net/rtmp'
+DATATYPE_NAMES = Net::RTMP::DATATYPES.invert
+
+def inspect_packet(packet)
+  puts(
+    "Content type: 0x%x (%s)" % [packet.content_type, 
+                                 DATATYPE_NAMES[packet.content_type] || '?'],
+    "Stream ID:    0x%x"      % packet.stream_id,
+    "Timestamp:    0x%x"      % packet.timestamp
+  )
+  data = packet.body
+  0.step(data.length-1, 16) do |i|
+    row = data[i, 16]
+    display_row = ''
+    (0...16).each do |j|
+      print '  ' if j % 8 == 0
+      c = row[j]
+      if c  
+        print "%02x " % c
+        display_row << c.chr
+      else
+        print "   "
+      end
+    end
+    puts display_row.gsub(/[^ -\x7e]/n, '.')
+  end
+end
+
+File.open(ARGV[0], 'rb') do |io|
+  io.seek(0xc01) # Ignore header
+  connection = Net::RTMP::Connection.new(io)
+  begin
+    loop do
+      connection.fetch do |packet|
+        inspect_packet(packet)
+        puts
+      end
+      puts '---', ''
+    end
+  rescue 
+  end
+end
