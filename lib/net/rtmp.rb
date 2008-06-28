@@ -6,6 +6,8 @@ require 'uri'
 
 module Net
   class RTMP
+    class NoMoreData < RuntimeError; end
+
     def initialize(uri)
       @uri = URI.parse(uri)
       connect
