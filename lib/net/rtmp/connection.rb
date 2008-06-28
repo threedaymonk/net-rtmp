@@ -7,7 +7,7 @@ class Connection
   HANDSHAKE_LENGTH = 1536
 
   def initialize(socket)
-    @socket = socket
+    @socket = WrappedSocket.new(socket)
     @packets = {}
   end
 
@@ -53,6 +53,26 @@ private
 
   def random_string(length)
     (0...length).map{ rand(256) }.pack('C*')
+  end
+
+  class WrappedSocket
+    def initialize(socket)
+      @socket = socket
+    end
+
+    def read(length=nil)
+      if length
+        data = @socket.read(length)
+        raise NoMoreData if data.nil?
+        return data
+      else
+        return @socket.read
+      end
+    end
+
+    def write(data)
+      @socket.write(data)
+    end
   end
 
 end

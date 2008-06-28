@@ -1,5 +1,5 @@
 $:.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
-require 'net/rtmp/connection'
+require 'net/rtmp'
 require 'test/unit'
 require 'stringio'
 require 'mocha'
@@ -153,6 +153,23 @@ class RTMPConnectionTest < Test::Unit::TestCase
     connection = Net::RTMP::Connection.new(socket)
     connection.handshake
     assert_equal handshake_string, socket.written[1]
+  end
+
+  def test_should_raise_exception_when_no_more_data_is_available
+    socket = StringIO.new
+    connection = Net::RTMP::Connection.new(socket)
+    assert_raises Net::RTMP::NoMoreData do
+      connection.get_data{}
+    end
+  end
+
+  def test_should_raise_exception_when_fewer_bytes_are_available_than_requested
+    sample = "\x03\x00\x00\x01\x00\x01\x05\x14\x00\x00"
+    socket = StringIO.new(sample)
+    connection = Net::RTMP::Connection.new(socket)
+    assert_raises Net::RTMP::NoMoreData do
+      connection.get_data{}
+    end
   end
 
 private
