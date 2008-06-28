@@ -1,13 +1,11 @@
-require 'net/rtmp/connection'
-require 'net/rtmp/constants'
-require 'net/rtmp/packet'
+%w[ connection constants packet amf errors ].each do |m|
+  require "net/rtmp/#{m}"
+end
 require 'socket'
 require 'uri'
 
 module Net
   class RTMP
-    class NoMoreData < RuntimeError; end
-
     def initialize(uri)
       @uri = URI.parse(uri)
       connect

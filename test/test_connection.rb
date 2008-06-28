@@ -1,5 +1,5 @@
 $:.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
-require 'net/rtmp'
+require 'net/rtmp/connection'
 require 'test/unit'
 require 'stringio'
 require 'mocha'

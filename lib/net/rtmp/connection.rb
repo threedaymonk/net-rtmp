@@ -1,4 +1,5 @@
 require 'net/rtmp/packet'
+require 'net/rtmp/errors'
 
 module Net
 class RTMP
