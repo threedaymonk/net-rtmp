@@ -10,6 +10,7 @@ class Connection
   def initialize(socket)
     @socket = WrappedSocket.new(socket)
     @packets = {}
+    @last_packet = nil
   end
 
   def handshake
@@ -24,9 +25,11 @@ class Connection
     if packet = @packets[header.oid]
       packet.endow(header)
     else
+      @last_packet.endow(header) if @last_packet
       packet = @packets[header.oid] = Packet.new(header)
     end
     packet << @socket.read(packet.bytes_to_fetch)
+    @last_packet = packet
     if packet.complete?
       @packets.delete(header.oid)
       yield packet

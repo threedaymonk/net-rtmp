@@ -39,6 +39,25 @@ class RTMPConnectionTest < Test::Unit::TestCase
     assert_equal data, packets[0].body
   end
 
+  def test_should_inherit_ping_length
+    sample = %w[
+      42 00 00 00  00 00 0a 04
+      00 03 00 00  00 00 00 00
+      17 70 c2 00  03 00 00 00
+      00 00 00 13  88 00 00 00
+    ].map{ |c| c.to_i(16) }.pack('C*') + "." * 1000
+    socket = MockSocket.new(sample)
+    connection = Net::RTMP::Connection.new(socket)
+    packets = []
+    2.times do
+      connection.get_data do |packet|
+        packets << packet
+      end
+    end
+    assert_equal 0x0a, packets[0].body.length
+    assert_equal 0x0a, packets[1].body.length
+  end
+
   def test_should_concatenate_non_contiguous_chunks_and_yield_complete_packets
     data = [
       [ random_string(128), random_string(128), random_string(5) ],
