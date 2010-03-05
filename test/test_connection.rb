@@ -45,8 +45,8 @@ class RTMPConnectionTest < Test::Unit::TestCase
       00 03 00 00  00 00 00 00
       17 70
       43 00 00 00  00 00 01 04
-      99 
-      c2 00 03 00  00 00 00 00 
+      99
+      c2 00 03 00  00 00 00 00
       00 13  88 00 00 00
     ].map{ |c| c.to_i(16) }.pack('C*') + "." * 1000
     socket = MockSocket.new(sample)
