@@ -31,6 +31,17 @@ module Net
         read_and_unpack(8, 'G')
       end
 
+      def read_bitfield(*widths)
+        byte = read_uint8
+        parts = []
+        widths.reverse_each do |width|
+          mask = 0b1111_1111 >> (8 - width)
+          parts << (byte & mask)
+          byte = byte >> width
+        end
+        parts.reverse
+      end
+
     private
       def read_and_unpack(length, specifier)
         read(length).unpack(specifier)[0]

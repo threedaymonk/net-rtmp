@@ -26,9 +26,8 @@ module Net
 
         def parse(io)
           bytestream = Bytestream.new(io)
-          first = bytestream.read_uint8
-          header_length = HEADER_LENGTHS[first >> 6]
-          @oid = first & 0b0011_1111
+          header_type, @oid = bytestream.read_bitfield(2, 6)
+          header_length = HEADER_LENGTHS[header_type]
           if header_length >= 4
             @timestamp = bytestream.read_uint24_be
           end
