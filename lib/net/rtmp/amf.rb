@@ -1,19 +1,19 @@
 require 'net/rtmp/packet'
+require 'net/rtmp/bytestream'
 require 'stringio'
 
 module Net
 class RTMP
 class AMF
-
   EndOfPacket = Class.new
 
-  DATA_TYPES = {
+  DECODE_DATA_TYPE = {
     0x00 => :number,
     0x01 => :boolean,
     0x02 => :string,
     0x03 => :object,
     0x04 => :movieclip,
-    0x05 => :null_value,
+    0x05 => :null,
     0x06 => :undefined,
     0x07 => :reference,
     0x08 => :ecma_array,
@@ -26,13 +26,14 @@ class AMF
     0x0f => :xml_object,
     0x10 => :typed_object
   }
+  ENCODE_DATA_TYPE = DECODE_DATA_TYPE.invert
 
   def initialize
     @elements = []
   end
 
   def parse(data)
-    @elements = recursive_parse(StringIO.new(data))
+    @elements = recursive_parse(Bytestream.new(StringIO.new(data)))
   end
 
   def to_a
@@ -41,53 +42,53 @@ class AMF
 
 private
 
-  def recursive_parse(io)
+  def recursive_parse(bytestream)
     elements = []
-    until io.eof? || (e = next_element(io)) == EndOfPacket
+    until bytestream.eof? || (e = next_element(bytestream)) == EndOfPacket
       elements << e
     end
     elements
   end
 
-  def next_element(io)
-    data_type = DATA_TYPES[read_data_type(io)]
-    value = __send__("read_#{data_type}", io)
+  def next_element(bytestream)
+    data_type = DECODE_DATA_TYPE[read_data_type(bytestream)]
+    value = __send__("read_#{data_type}", bytestream)
     value
   end
 
-  def read_data_type(io)
-    io.read(1).unpack('C')[0]
+  def read_data_type(bytestream)
+    bytestream.read_uint8
   end
 
-  def read_length_prefixed_data(io)
-    length = io.read(2).unpack('n')[0]
-    io.read(length)
+  def read_length_prefixed_data(bytestream)
+    length = bytestream.read_uint16_be
+    bytestream.read(length)
   end
 
   alias_method :read_string,      :read_length_prefixed_data
   alias_method :read_long_string, :read_length_prefixed_data
 
-  def read_number(io)
-    io.read(8).unpack('G')[0]
+  def read_number(bytestream)
+    bytestream.read_double_be
   end
 
-  def read_boolean(io)
-    io.read(1).unpack('C')[0] != 0
+  def read_boolean(bytestream)
+    bytestream.read_uint8 != 0
   end
 
-  def read_object(io)
+  def read_object(bytestream)
     hash = {}
-    until (key = read_length_prefixed_data(io)) == ''
-      hash[key] = next_element(io)
+    until (key = read_length_prefixed_data(bytestream)) == ''
+      hash[key] = next_element(bytestream)
     end
     hash
   end
 
-  def read_null_value(io)
+  def read_null(_)
     nil
   end
 
-  def read_object_end(io)
+  def read_object_end(_)
     EndOfPacket
   end
 
