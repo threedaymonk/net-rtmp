@@ -33,13 +33,9 @@ module Net
 
       def read_bitfield(*widths)
         byte = read_uint8
-        parts = []
-        widths.reverse_each do |width|
-          mask = 0b1111_1111 >> (8 - width)
-          parts << (byte & mask)
-          byte = byte >> width
-        end
-        parts.reverse
+        shifts_and_masks(widths).map{ |shift, mask|
+          (byte >> shift) & mask
+        }
       end
 
     private
@@ -47,6 +43,13 @@ module Net
         read(length).unpack(specifier)[0]
       end
 
+      def shifts_and_masks(bit_widths)
+        (0 ... bit_widths.length).map{ |i| [
+          bit_widths[i+1 .. -1].inject(0){ |a,e| a + e },
+          0b1111_1111 >> (8 - bit_widths[i])
+        ]}
       end
+
     end
   end
+end
