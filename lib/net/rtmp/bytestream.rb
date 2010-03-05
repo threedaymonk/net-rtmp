@@ -19,6 +19,14 @@ module Net
         read_and_unpack(2, 'n')
       end
 
+      def read_uint24_be
+        ("\x00" + read(3)).unpack('N')[0]
+      end
+
+      def read_uint32_le
+        read_and_unpack(4, 'V')
+      end
+
       def read_double_be
         read_and_unpack(8, 'G')
       end

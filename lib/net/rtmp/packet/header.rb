@@ -25,18 +25,19 @@ module Net
         end
 
         def parse(io)
-          byte = io.read(1).unpack('C')[0]
-          header_length = HEADER_LENGTHS[byte >> 6]
-          @oid = byte & 0b0011_1111
+          bytestream = Bytestream.new(io)
+          first = bytestream.read_uint8
+          header_length = HEADER_LENGTHS[first >> 6]
+          @oid = first & 0b0011_1111
           if header_length >= 4
-            @timestamp = ("\x00" + io.read(3)).unpack('N')[0]
+            @timestamp = bytestream.read_uint24_be
           end
           if header_length >= 8
-            @body_length = ("\x00" + io.read(3)).unpack('N')[0]
-            @content_type = io.read(1).unpack('C')[0]
+            @body_length = bytestream.read_uint24_be
+            @content_type = bytestream.read_uint8
           end
           if header_length == 12
-            @stream_id = io.read(4).unpack('V')[0]
+            @stream_id = bytestream.read_uint32_le
           end
         end
 
