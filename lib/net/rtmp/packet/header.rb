@@ -1,3 +1,5 @@
+require "net/rtmp/bytestream"
+
 module Net
   class RTMP
     class Packet
@@ -40,16 +42,16 @@ module Net
           end
         end
 
-        def generate(length=12)
-          length_marker = HEADER_LENGTHS.invert[length] << 6
-          raw = [length_marker | @oid].pack('C')
+        def generate(io, length=12)
+          bytestream = Bytestream.new(io)
+          length_marker = HEADER_LENGTHS.invert[length]
+          bytestream.write_bitfield([length_marker, 2], [oid, 6])
           if length == 12
-            raw << [@timestamp].pack('N')[1,3]
-            raw << [@body_length].pack('N')[1,3]
-            raw << [@content_type].pack('C')
-            raw << [@stream_id].pack('V')
+            bytestream.write_uint24_be @timestamp
+            bytestream.write_uint24_be @body_length
+            bytestream.write_uint8     @content_type
+            bytestream.write_uint32_le @stream_id
           end
-          raw
         end
       end
     end

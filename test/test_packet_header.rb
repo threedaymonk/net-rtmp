@@ -97,7 +97,9 @@ class RTMPPacketHeaderTest < Test::Unit::TestCase
     header.body_length  = 0x1234
     header.content_type = 0x14
     header.stream_id    = 0x78563412
-    assert_equal "\x04\x00\x00\x01\x00\x12\x34\x14\x12\x34\x56\x78", header.generate
+    output = ""
+    header.generate(StringIO.new(output))
+    assert_equal "\x04\x00\x00\x01\x00\x12\x34\x14\x12\x34\x56\x78", output
   end
 
   def test_should_generate_1_byte_header
@@ -107,7 +109,9 @@ class RTMPPacketHeaderTest < Test::Unit::TestCase
     header.body_length  = 0x1234
     header.content_type = 0x14
     header.stream_id    = 0x78563412
-    assert_equal "\xC4", header.generate(1)
+    output = ""
+    header.generate(StringIO.new(output), 1)
+    assert_equal "\xC4", output
   end
 
   def test_should_roundtrip_header
@@ -116,6 +120,8 @@ class RTMPPacketHeaderTest < Test::Unit::TestCase
                    0x11, 0x22, 0x33, 0x44].pack('C*')
     header = Net::RTMP::Packet::Header.new
     header.parse(StringIO.new(data))
-    assert_equal(data, header.generate)
+    output = ""
+    header.generate(StringIO.new(output))
+    assert_equal data, output
   end
 end

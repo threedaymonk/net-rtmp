@@ -3,6 +3,7 @@ require 'net/rtmp/packet/header'
 module Net
   class RTMP
     class Packet
+      MAX_PACKET_SIZE = 128
 
       attr_accessor :body, :oid, :timestamp, :content_type, :stream_id
 
@@ -25,16 +26,17 @@ module Net
       end
 
       def bytes_to_fetch
-        [@body_length - @body.length, 128].min
+        [@body_length - @body.length, MAX_PACKET_SIZE].min
       end
 
-      def generate
+      def generate(io)
         bytes_sent = 0
         header = build_header
         while bytes_sent < @body.length
-          bytes_to_send = [@body.length - bytes_sent, 128].min
+          bytes_to_send = [@body.length - bytes_sent, MAX_PACKET_SIZE].min
           header_length =  bytes_sent == 0 ? 12 : 1
-          yield(header.generate(header_length) + body[bytes_sent, bytes_to_send])
+          header.generate(io, header_length)
+          io.write(body[bytes_sent, bytes_to_send])
           bytes_sent += bytes_to_send
         end
       end
