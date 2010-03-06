@@ -1,51 +1,59 @@
-$:.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
+require File.expand_path("../common", __FILE__)
 require 'net/rtmp/amf'
-require 'test/unit'
-require 'mocha'
 
 class AMFTest < Test::Unit::TestCase
 
-  def test_should_extract_elements_from_sample_1
-    amf = Net::RTMP::AMF.new
-    amf.parse(SAMPLE_1)
-    expected = [
-      "connect",
-      1.0,
-      {
-        "capabilities" => 15.0,
-        "videoFunction" => 1.0,
-        "audioCodecs" => 1639.0,
-        "app" =>
-          "ondemand?_fcs_vhost=cp48184.edgefcs.net&auth=daEcIaKaQdfaicZcBa_aL"+
-          "a9dYbhdCaCc3d9-bizwQB-cCp-FnrDCqBnNDoGuwF&aifp=v001&slist=secure/6"+
-          "music/AMI_e6d01bf639fe37be3a42e423f9f38425_b00c73d2_6m_lamacq_thu",
-        "videoCodecs" => 252.0,
-        "swfUrl" => "http://www.bbc.co.uk/emp/player.swf?revision=3704",
-        "pageUrl" => "http://www.bbc.co.uk/iplayerbeta/episode/b00c73fc",
-        "tcUrl" =>
-          "rtmp://84.53.177.140:1935/ondemand?_fcs_vhost=cp48184.edgefcs.net&"+
-          "auth=daEcIaKaQdfaicZcBa_aLa9dYbhdCaCc3d9-bizwQB-cCp-FnrDCqBnNDoGuw"+
-          "F&aifp=v001&slist=secure/6music/AMI_e6d01bf639fe37be3a42e423f9f384"+
-          "25_b00c73d2_6m_lamacq_thu",
-        "fpad" => false,
-        "flashVer" => "LNX 9,0,124,0"
-      }
-    ]
-    assert_equal expected, amf.to_a
+  context "when reading an AMF packet" do
+    context "with short sample" do
+      setup do
+        @sample_data = SHORT_SAMPLE
+      end
+
+      should "extract elements" do
+        amf = Net::RTMP::AMF.new
+        amf.parse(@sample_data)
+        expected = ['_checkbw', 0.0, nil]
+        assert_equal expected, amf.to_a
+      end
+    end
+
+    context "with long sample" do
+      setup do
+        @sample_data = LONG_SAMPLE
+      end
+
+      should "extract elements" do
+        amf = Net::RTMP::AMF.new
+        amf.parse(@sample_data)
+        expected = [
+          "connect",
+          1.0,
+          {
+            "capabilities" => 15.0,
+            "videoFunction" => 1.0,
+            "audioCodecs" => 1639.0,
+            "app" =>
+              "ondemand?_fcs_vhost=cp48184.edgefcs.net&auth=daEcIaKaQdfaicZcBa_aL"+
+              "a9dYbhdCaCc3d9-bizwQB-cCp-FnrDCqBnNDoGuwF&aifp=v001&slist=secure/6"+
+              "music/AMI_e6d01bf639fe37be3a42e423f9f38425_b00c73d2_6m_lamacq_thu",
+            "videoCodecs" => 252.0,
+            "swfUrl" => "http://www.bbc.co.uk/emp/player.swf?revision=3704",
+            "pageUrl" => "http://www.bbc.co.uk/iplayerbeta/episode/b00c73fc",
+            "tcUrl" =>
+              "rtmp://84.53.177.140:1935/ondemand?_fcs_vhost=cp48184.edgefcs.net&"+
+              "auth=daEcIaKaQdfaicZcBa_aLa9dYbhdCaCc3d9-bizwQB-cCp-FnrDCqBnNDoGuw"+
+              "F&aifp=v001&slist=secure/6music/AMI_e6d01bf639fe37be3a42e423f9f384"+
+              "25_b00c73d2_6m_lamacq_thu",
+            "fpad" => false,
+            "flashVer" => "LNX 9,0,124,0"
+          }
+        ]
+        assert_equal expected, amf.to_a
+      end
+    end
   end
 
-  def test_should_extract_elements_from_sample_2
-    amf = Net::RTMP::AMF.new
-    amf.parse(SAMPLE_2)
-    expected = ['_checkbw', 0.0, nil]
-    assert_equal expected, amf.to_a
-  end
-
-  def self.to_bytes(array)
-    array.map{ |b| b.to_i(16) }.pack('C*')
-  end
-
-  SAMPLE_1 = to_bytes(%w(
+  LONG_SAMPLE = hex <<-END
     02 00 07 63 6f 6e 6e 65   63 74 00 3f f0 00 00 00
     00 00 00 03 00 03 61 70   70 02 00 c5 6f 6e 64 65
     6d 61 6e 64 3f 5f 66 63   73 5f 76 68 6f 73 74 3d
@@ -91,11 +99,10 @@ class AMFTest < Test::Unit::TestCase
     2e 75 6b 2f 69 70 6c 61   79 65 72 62 65 74 61 2f
     65 70 69 73 6f 64 65 2f   62 30 30 63 37 33 66 63
     00 00 09
-  ))
+  END
 
-  SAMPLE_2 = to_bytes(%w(
+  SHORT_SAMPLE = hex <<-END
     02 00 08 5f 63 68 65 63   6b 62 77 00 00 00 00 00
     00 00 00 00 05
-  ))
-
+  END
 end
