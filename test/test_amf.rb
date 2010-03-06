@@ -16,12 +16,17 @@ class AMFTest < Test::Unit::TestCase
         "videoFunction" => 1.0,
         "audioCodecs" => 1639.0,
         "app" =>
-          "ondemand?_fcs_vhost=cp48184.edgefcs.net&auth=daEcIaKaQdfaicZcBa_aLa9dYbhdCaCc3d9-bizwQB-cCp-FnrDCqBnNDoGuwF&aifp=v001&slist=secure/6music/AMI_e6d01bf639fe37be3a42e423f9f38425_b00c73d2_6m_lamacq_thu",
+          "ondemand?_fcs_vhost=cp48184.edgefcs.net&auth=daEcIaKaQdfaicZcBa_aL"+
+          "a9dYbhdCaCc3d9-bizwQB-cCp-FnrDCqBnNDoGuwF&aifp=v001&slist=secure/6"+
+          "music/AMI_e6d01bf639fe37be3a42e423f9f38425_b00c73d2_6m_lamacq_thu",
         "videoCodecs" => 252.0,
         "swfUrl" => "http://www.bbc.co.uk/emp/player.swf?revision=3704",
         "pageUrl" => "http://www.bbc.co.uk/iplayerbeta/episode/b00c73fc",
         "tcUrl" =>
-          "rtmp://84.53.177.140:1935/ondemand?_fcs_vhost=cp48184.edgefcs.net&auth=daEcIaKaQdfaicZcBa_aLa9dYbhdCaCc3d9-bizwQB-cCp-FnrDCqBnNDoGuwF&aifp=v001&slist=secure/6music/AMI_e6d01bf639fe37be3a42e423f9f38425_b00c73d2_6m_lamacq_thu",
+          "rtmp://84.53.177.140:1935/ondemand?_fcs_vhost=cp48184.edgefcs.net&"+
+          "auth=daEcIaKaQdfaicZcBa_aLa9dYbhdCaCc3d9-bizwQB-cCp-FnrDCqBnNDoGuw"+
+          "F&aifp=v001&slist=secure/6music/AMI_e6d01bf639fe37be3a42e423f9f384"+
+          "25_b00c73d2_6m_lamacq_thu",
         "fpad" => false,
         "flashVer" => "LNX 9,0,124,0"
       }
