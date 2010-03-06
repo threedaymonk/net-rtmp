@@ -14,7 +14,7 @@ module Net
       end
 
       def handshake
-        @socket.write("\x03" + random_string(HANDSHAKE_LENGTH))
+        @socket.write(HEADER_BYTE + random_string(HANDSHAKE_LENGTH))
         shared = @socket.read(2 * HANDSHAKE_LENGTH + 1)[(HANDSHAKE_LENGTH + 1)..-1]
         @socket.write(shared)
       end
