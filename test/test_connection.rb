@@ -154,12 +154,23 @@ class RTMPConnectionTest < Test::Unit::TestCase
   end
 
   def test_should_send_packets
-    socket = mock
-    connection = Net::RTMP::Connection.new(socket)
+    data = "x" * (128+128+7)
     packet = Net::RTMP::Packet.new
-    packet.stubs(:generate).yields('DATA')
-    socket.expects(:write).with('DATA')
+    packet.oid          = 4
+    packet.timestamp    = 0x000001
+    packet.content_type = 0x14
+    packet.stream_id    = 0x78563412
+    packet.body         = data
+
+    output = ""
+    connection = Net::RTMP::Connection.new(StringIO.new(output))
     connection.send(packet)
+    expected = [
+      "\x04\x00\x00\x01\x00\x01\x07\x14\x12\x34\x56\x78", data[0,128],
+      "\xC4", data[128,128],
+      "\xC4", data[256,7]
+    ].join
+    assert_equal expected, output
   end
 
   def test_should_send_header

@@ -50,9 +50,7 @@ module Net
       end
 
       def send(packet)
-        packet.generate do |chunk|
-          @socket.write(chunk)
-        end
+        packet.generate(@socket)
       end
 
     private
