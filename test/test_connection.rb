@@ -1,198 +1,7 @@
 require File.expand_path("../common", __FILE__)
 require 'net/rtmp/connection'
 
-class RTMPConnectionTest < Test::Unit::TestCase
-
-  context "when reading data" do
-    context "with sample having contiguous chunks" do
-      setup do
-        @sample = CONTIGUOUS_SAMPLE
-      end
-
-      should "concatenate contiguous chunks and yield complete packets" do
-        socket = MockSocket.new(@sample)
-        connection = Net::RTMP::Connection.new(socket)
-        packets = []
-        3.times do
-          connection.get_data do |packet|
-            packets << packet
-          end
-        end
-        data = @sample[12,128] + @sample[141,128] + @sample[270,5]
-        assert_equal data, packets[0].body
-      end
-    end
-
-    context "with sample using recycled OIDs" do
-      setup do
-        @sample = RECYCLED_OID_SAMPLE + "." * 1000
-      end
-
-      should "inherit length via OID even if OID is recycled" do
-        socket = MockSocket.new(@sample)
-        connection = Net::RTMP::Connection.new(socket)
-        packets = []
-        3.times do
-          connection.get_data do |packet|
-            packets << packet
-          end
-        end
-        assert_equal 0x0a, packets[0].body.length
-        assert_equal 0x0a, packets[2].body.length
-      end
-    end
-
-    should "concatenate non-contiguous chunks and yield complete packets" do
-      data = [
-        [ random_string(128), random_string(128), random_string(5) ],
-        [ random_string(128), random_string(7) ]
-      ]
-      sample = hex("03 00 00 01 00 01 05 14 00 00 00 00") +
-               data[0][0] +
-               hex("44 00 00 01 00 00 87 14") +
-               data[1][0] +
-               hex("c3") +
-               data[0][1] +
-               hex("c4") +
-               data[1][1] +
-               hex("c3") +
-               data[0][2]
-      socket = MockSocket.new(sample)
-      connection = Net::RTMP::Connection.new(socket)
-      packets = []
-      5.times do
-        connection.get_data do |packet|
-          packets << packet
-        end
-      end
-      assert_equal [data[1].join, data[0].join], packets.map{ |p| p.body }
-    end
-
-    should "have complete headers in yielded packet" do
-      data = [
-        [ random_string(128), random_string(128), random_string(5) ],
-        [ random_string(128), random_string(7) ]
-      ]
-      sample = hex("03 00 00 01 00 01 05 14 12 34 56 78") +
-               data[0][0] +
-               hex("44 00 00 01 00 00 87 14") +
-               data[1][0] +
-               hex("c3") +
-               data[0][1] +
-               hex("c4") +
-               data[1][1] +
-               hex("c3") +
-               data[0][2]
-      socket = MockSocket.new(sample)
-      connection = Net::RTMP::Connection.new(socket)
-      packets = []
-      5.times do
-        connection.get_data do |packet|
-          packets << packet
-        end
-      end
-      packet = packets[1]
-      assert_equal 0x000001,   packet.timestamp
-      assert_equal 0x14,       packet.content_type
-      assert_equal 0x78563412, packet.stream_id
-    end
-
-    should "need data when packets are incomplete" do
-      data = [
-        [ random_string(128), random_string(128), random_string(5) ],
-        [ random_string(128), random_string(7) ]
-      ]
-      sample = hex("03 00 00 01 00 01 05 14 12 34 56 78") +
-               random_string(128)
-      socket = MockSocket.new(sample)
-      connection = Net::RTMP::Connection.new(socket)
-      connection.get_data{}
-      assert connection.need_data?
-    end
-
-    should "get all outstanding packets" do
-      data = [
-        [ random_string(128), random_string(128), random_string(5) ],
-        [ random_string(128), random_string(7) ]
-      ]
-      sample = hex("03 00 00 01 00 01 05 14 12 34 56 78") +
-               data[0][0] +
-               hex("44 00 00 01 00 00 87 14") +
-               data[1][0] +
-               hex("c3") +
-               data[0][1] +
-               hex("c4") +
-               data[1][1] +
-               hex("c3") +
-               data[0][2]
-      socket = MockSocket.new(sample)
-      connection = Net::RTMP::Connection.new(socket)
-      packets = []
-      connection.fetch do |packet|
-        packets << packet
-      end
-      assert_equal 2, packets.length
-    end
-
-    should "raise exception when no more data is available" do
-      socket = StringIO.new
-      connection = Net::RTMP::Connection.new(socket)
-      assert_raises Net::RTMP::NoMoreData do
-        connection.get_data{}
-      end
-    end
-
-    should "raise exception when fewer bytes are available than requested" do
-      sample = hex("03 00 00 01 00 01 05 14 00 00")
-      socket = StringIO.new(sample)
-      connection = Net::RTMP::Connection.new(socket)
-      assert_raises Net::RTMP::NoMoreData do
-        connection.get_data{}
-      end
-    end
-  end
-
-  context "when writing data" do
-    should "send packets" do
-      data = "x" * (128+128+7)
-      packet = Net::RTMP::Packet.new
-      packet.oid          = 4
-      packet.timestamp    = 0x000001
-      packet.content_type = 0x14
-      packet.stream_id    = 0x78563412
-      packet.body         = data
-
-      output = ""
-      connection = Net::RTMP::Connection.new(StringIO.new(output))
-      connection.send(packet)
-      expected = [
-        hex("04 00 00 01 00 01 07 14 12 34 56 78"),
-        data[0,128],
-        hex("C4"),
-        data[128,128],
-        hex("C4"),
-        data[256,7]
-      ].join
-      assert_equal expected, output
-    end
-  end
-
-  context "when connecting" do
-    should "send header" do
-      socket = MockSocket.new(random_string(1536 * 3))
-      connection = Net::RTMP::Connection.new(socket)
-      connection.handshake
-      assert_match %r{\A\x03.{1536}\Z}m, socket.written[0]
-    end
-
-    should "respond to handshake" do
-      handshake_string = random_string(1536)
-      socket = MockSocket.new("\x03" + random_string(1536) + handshake_string)
-      connection = Net::RTMP::Connection.new(socket)
-      connection.handshake
-      assert_equal handshake_string, socket.written[1]
-    end
-  end
+class RTMPConnectionReadTest < Test::Unit::TestCase
 
   CONTIGUOUS_SAMPLE = hex <<-END
     03 00 00 01
@@ -215,6 +24,20 @@ class RTMPConnectionTest < Test::Unit::TestCase
     6f 63 6f 6e 66 65 72 65 6e c3 63 65 00 00 09 00
   END
 
+  def test_should_concatenate_contiguous_chunks_and_yield_complete_packets
+    sample = CONTIGUOUS_SAMPLE
+    socket = MockSocket.new(sample)
+    connection = Net::RTMP::Connection.new(socket)
+    packets = []
+    3.times do
+      connection.get_data do |packet|
+        packets << packet
+      end
+    end
+    data = sample[12,128] + sample[141,128] + sample[270,5]
+    assert_equal data, packets[0].body
+  end
+
   RECYCLED_OID_SAMPLE = hex <<-END
     42 00 00 00  00 00 0a 04
     00 03 00 00  00 00 00 00
@@ -224,4 +47,170 @@ class RTMPConnectionTest < Test::Unit::TestCase
     c2 00 03 00  00 00 00 00
     00 13  88 00 00 00
   END
+
+  def test_should_inherit_length_via_OID_even_if_OID_is_recycled
+    socket = MockSocket.new(RECYCLED_OID_SAMPLE)
+    connection = Net::RTMP::Connection.new(socket)
+    packets = []
+    3.times do
+      connection.get_data do |packet|
+        packets << packet
+      end
+    end
+    assert_equal 0x0a, packets[0].body.length
+    assert_equal 0x0a, packets[2].body.length
+  end
+
+  def test_should_concatenate_non_contiguous_chunks_and_yield_complete_packets
+    data = [
+      [ random_string(128), random_string(128), random_string(5) ],
+      [ random_string(128), random_string(7) ]
+    ]
+    sample = hex("03 00 00 01 00 01 05 14 00 00 00 00") +
+             data[0][0] +
+             hex("44 00 00 01 00 00 87 14") +
+             data[1][0] +
+             hex("c3") +
+             data[0][1] +
+             hex("c4") +
+             data[1][1] +
+             hex("c3") +
+             data[0][2]
+    socket = MockSocket.new(sample)
+    connection = Net::RTMP::Connection.new(socket)
+    packets = []
+    5.times do
+      connection.get_data do |packet|
+        packets << packet
+      end
+    end
+    assert_equal [data[1].join, data[0].join], packets.map{ |p| p.body }
+  end
+
+  def test_should_have_complete_headers_in_yielded_packet
+    data = [
+      [ random_string(128), random_string(128), random_string(5) ],
+      [ random_string(128), random_string(7) ]
+    ]
+    sample = hex("03 00 00 01 00 01 05 14 12 34 56 78") +
+             data[0][0] +
+             hex("44 00 00 01 00 00 87 14") +
+             data[1][0] +
+             hex("c3") +
+             data[0][1] +
+             hex("c4") +
+             data[1][1] +
+             hex("c3") +
+             data[0][2]
+    socket = MockSocket.new(sample)
+    connection = Net::RTMP::Connection.new(socket)
+    packets = []
+    5.times do
+      connection.get_data do |packet|
+        packets << packet
+      end
+    end
+    packet = packets[1]
+    assert_equal 0x000001,   packet.timestamp
+    assert_equal 0x14,       packet.content_type
+    assert_equal 0x78563412, packet.stream_id
+  end
+
+  def test_should_need_data_when_packets_are_incomplete
+    data = [
+      [ random_string(128), random_string(128), random_string(5) ],
+      [ random_string(128), random_string(7) ]
+    ]
+    sample = hex("03 00 00 01 00 01 05 14 12 34 56 78") +
+             random_string(128)
+    socket = MockSocket.new(sample)
+    connection = Net::RTMP::Connection.new(socket)
+    connection.get_data{}
+    assert connection.need_data?
+  end
+
+  def test_should_get_all_outstanding_packets
+    data = [
+      [ random_string(128), random_string(128), random_string(5) ],
+      [ random_string(128), random_string(7) ]
+    ]
+    sample = hex("03 00 00 01 00 01 05 14 12 34 56 78") +
+             data[0][0] +
+             hex("44 00 00 01 00 00 87 14") +
+             data[1][0] +
+             hex("c3") +
+             data[0][1] +
+             hex("c4") +
+             data[1][1] +
+             hex("c3") +
+             data[0][2]
+    socket = MockSocket.new(sample)
+    connection = Net::RTMP::Connection.new(socket)
+    packets = []
+    connection.fetch do |packet|
+      packets << packet
+    end
+    assert_equal 2, packets.length
+  end
+
+  def test_should_raise_exception_when_no_more_data_is_available
+    socket = StringIO.new
+    connection = Net::RTMP::Connection.new(socket)
+    assert_raises Net::RTMP::NoMoreData do
+      connection.get_data{}
+    end
+  end
+
+  def test_should_raise_exception_when_fewer_bytes_are_available_than_requested
+    sample = hex("03 00 00 01 00 01 05 14 00 00")
+    socket = StringIO.new(sample)
+    connection = Net::RTMP::Connection.new(socket)
+    assert_raises Net::RTMP::NoMoreData do
+      connection.get_data{}
+    end
+  end
+end
+
+class RTMPConnectionWriteTest < Test::Unit::TestCase
+
+  def test_should_send_packets
+    data = "x" * (128+128+7)
+    packet = Net::RTMP::Packet.new
+    packet.oid          = 4
+    packet.timestamp    = 0x000001
+    packet.content_type = 0x14
+    packet.stream_id    = 0x78563412
+    packet.body         = data
+
+    output = ""
+    connection = Net::RTMP::Connection.new(StringIO.new(output))
+    connection.send(packet)
+    expected = [
+      hex("04 00 00 01 00 01 07 14 12 34 56 78"),
+      data[0,128],
+      hex("C4"),
+      data[128,128],
+      hex("C4"),
+      data[256,7]
+    ].join
+    assert_equal expected, output
+  end
+end
+
+class RTMPConnectionConnectingTest < Test::Unit::TestCase
+
+ def test_should_send_header
+    socket = MockSocket.new(random_string(1536 * 3))
+    connection = Net::RTMP::Connection.new(socket)
+    connection.handshake
+    assert_match %r{\A\x03.{1536}\Z}m, socket.written[0]
+  end
+
+  def test_should_respond_to_handshake
+    handshake_string = random_string(1536)
+    socket = MockSocket.new("\x03" + random_string(1536) + handshake_string)
+    connection = Net::RTMP::Connection.new(socket)
+    connection.handshake
+    assert_equal handshake_string, socket.written[1]
+  end
 end
