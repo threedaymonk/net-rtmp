@@ -35,8 +35,16 @@ module Net
         write [value].pack('N')[1,3]
       end
 
+      def read_uint32_be
+        read_and_unpack(4, 'N')
+      end
+
       def read_uint32_le
         read_and_unpack(4, 'V')
+      end
+
+      def write_uint32_be(value)
+        write [value].pack('N')
       end
 
       def write_uint32_le(value)

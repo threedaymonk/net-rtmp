@@ -28,7 +28,7 @@ module Net
       }
       ENCODE_DATA_TYPE = DECODE_DATA_TYPE.invert
 
-      def initialize
+      def initialize(version=0)
         @elements = []
       end
 
@@ -83,6 +83,16 @@ module Net
         hash
       end
 
+      def read_date(bytestream)
+        msec = bytestream.read_double_be
+        tz   = bytestream.read_uint16_be
+        msec
+      end
+
+      def read_undefined(bytestream)
+        nil
+      end
+
       def read_null(_)
         nil
       end
@@ -91,6 +101,16 @@ module Net
         EndOfPacket
       end
 
+      def read_strict_array(bytestream)
+        (0...bytestream.read_uint32_be).map{
+          next_element(bytestream)
+        }
+      end
+
+      def read_ecma_array(bytestream)
+        count = bytestream.read_uint32_be
+        read_object(bytestream)
+      end
     end
   end
 end
