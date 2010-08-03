@@ -30,6 +30,7 @@ module Net
 
       def initialize(version=0)
         @elements = []
+        @references = []
       end
 
       def parse(data)
@@ -80,6 +81,8 @@ module Net
         until (key = read_length_prefixed_data(bytestream)) == ''
           hash[key] = next_element(bytestream)
         end
+        bytestream.read_uint8 # TODO check it's 0x09
+        @references << hash
         hash
       end
 
@@ -102,14 +105,21 @@ module Net
       end
 
       def read_strict_array(bytestream)
-        (0...bytestream.read_uint32_be).map{
+        array = (0...bytestream.read_uint32_be).map{
           next_element(bytestream)
         }
+        @references << array
+        array
       end
 
       def read_ecma_array(bytestream)
         count = bytestream.read_uint32_be
         read_object(bytestream)
+      end
+
+      def read_reference(bytestream)
+        index = bytestream.read_uint16_be
+        @references[index - 1] # 1-indexed
       end
     end
   end

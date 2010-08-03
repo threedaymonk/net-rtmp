@@ -1,7 +1,7 @@
 require File.expand_path("../../common", __FILE__)
 require 'net/rtmp/amf'
 
-class AMF0ParseTest < Test::Unit::TestCase
+class AMF3ParseTest < Test::Unit::TestCase
 
   def assert_parsed(expected, filename)
     path = File.expand_path("../data/amf3/#{filename}", __FILE__)
