@@ -1,4 +1,4 @@
-require File.expand_path("../common", __FILE__)
+require File.expand_path("../../common", __FILE__)
 require 'net/rtmp/packet'
 
 class RTMPPacketReceivingTest < Test::Unit::TestCase
